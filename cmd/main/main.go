@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/signal"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -13,6 +15,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 	log "github.com/sirupsen/logrus"
 )
+
+var consecutiveWhiteSpacePattern *regexp.Regexp
+
+func init() {
+	consecutiveWhiteSpacePattern = regexp.MustCompile(`[\s\p{Zs}]{2,}`)
+}
 
 func main() {
 	var Token string
@@ -121,8 +129,10 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 		return nil
 	}
 
+	msg.Content = consecutiveWhiteSpacePattern.ReplaceAllString(msg.Content, " ")
+
 	msgSplits := strings.Split(msg.Content, " ")
-	if len(msgSplits) < 2 {
+	if len(msgSplits) == 0 {
 		return nil
 	}
 
@@ -146,8 +156,8 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 	}
 
 	var user *discordgo.User
-	var role *discordgo.Role
-	color := 0
+	var roleID string
+	var colorString string
 
 	switch command[len(command)-2:] {
 	case "me":
@@ -155,24 +165,45 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 			return errors.New("Found mentions")
 		}
 
-		if len(args) == 2 {
-			color, err = convertColor(args[1])
+		if len(args) < 1 {
+			return errors.New("not enough args")
+		}
+
+		if len(args) >= 2 {
+			colorString = args[1]
 		}
 
 		user = msg.Author
-		role, err = c.fetchRole(args[0], guild, color)
+		roleID = args[0]
 	case "em":
 		if len(msg.Mentions) != 1 {
-			return errors.New("No mentions in message")
+			return errors.New("Invalid number of mentions")
 		}
 
-		if len(args) == 3 {
-			color, err = convertColor(args[2])
+		if len(args) < 2 {
+			return errors.New("not enough args")
+		}
+
+		if len(args) >= 3 {
+			colorString = args[2]
 		}
 
 		user = msg.Mentions[0]
-		role, err = c.fetchRole(args[1], guild, color)
+		roleID = args[1]
 	}
+
+	var color int
+
+	if colorString == "" {
+		color = rand.Intn(16777215)
+	} else {
+		color, err = convertColor(colorString)
+		if err != nil {
+			return errors.New("Invalid hex color")
+		}
+	}
+
+	role, err := c.fetchRole(roleID, guild, color)
 
 	if err != nil { // Role has invalid permissions
 		return err
