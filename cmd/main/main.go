@@ -125,7 +125,7 @@ func (c *cardinal) roleHasMember(guild *discordgo.Guild, roleID string) bool {
 }
 
 func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
-	if !strings.HasPrefix(msg.Content, "!") {
+	if !strings.HasPrefix(msg.Content, "!") && !msg.Author.Bot {
 		return nil
 	}
 
