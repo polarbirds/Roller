@@ -2,38 +2,60 @@
 
 
 [[projects]]
+  digest = "1:b0fd1aac4e6eee019a17b69dc4473f6e6eaa39b80b36473bb6ed958e4f8e471c"
   name = "github.com/bwmarrin/discordgo"
   packages = ["."]
+  pruneopts = ""
   revision = "4a33b9bc7c56cfdb9bb244e33e83cb3941fe2bdc"
   version = "v0.18.0"
 
 [[projects]]
+  digest = "1:64d212c703a2b94054be0ce470303286b177ad260b2f89a307e3d1bb6c073ef6"
   name = "github.com/gorilla/websocket"
   packages = ["."]
+  pruneopts = ""
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:3fcbf733a8d810a21265a7f2fe08a3353db2407da052b233f8b204b5afc03d9b"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
+  pruneopts = ""
   revision = "3e01752db0189b9157070a0e1668a620f9a85da2"
   version = "v1.0.6"
 
 [[projects]]
   branch = "master"
+  digest = "1:53c4b75f22ea7757dea07eae380ea42de547ae6865a5e3b41866754a8a8219c9"
   name = "golang.org/x/crypto"
-  packages = ["internal/subtle","nacl/secretbox","poly1305","salsa20/salsa","ssh/terminal"]
+  packages = [
+    "internal/subtle",
+    "nacl/secretbox",
+    "poly1305",
+    "salsa20/salsa",
+    "ssh/terminal",
+  ]
+  pruneopts = ""
   revision = "f027049dab0ad238e394a753dba2d14753473a04"
 
 [[projects]]
   branch = "master"
+  digest = "1:00355c1b032fcd05c29dad217f43f38f7f46d691a519d86416edaf345e677c21"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
   revision = "acbc56fc7007d2a01796d5bde54f39e3b3e95945"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "03d83ad6f09e89b9fe6be5a682432e9ae151b391e638b2657169b1c78a9eda3e"
+  input-imports = [
+    "github.com/bwmarrin/discordgo",
+    "github.com/sirupsen/logrus",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

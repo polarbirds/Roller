@@ -59,7 +59,9 @@ func isValidCommand(command string) bool {
 		"me",
 		"!me",
 		"em",
-		"!em":
+		"!em",
+		"who",
+		"!who":
 		return true
 	}
 	return false
@@ -103,6 +105,36 @@ func (c *cardinal) fetchRole(roleName string, guild *discordgo.Guild, color int)
 	}
 
 	return c.createRole(roleName, guild, color)
+}
+
+func (c *cardinal) fetchRoleMembers(roleName string, guild *discordgo.Guild) (message string, err error) {
+	var role *discordgo.Role
+	for _, r := range guild.Roles {
+		if r.Name == roleName {
+			if !r.Mentionable {
+				return "", fmt.Errorf("%s is not mentionable", roleName)
+			}
+			role = r
+		}
+	}
+
+	for _, m := range guild.Members {
+		for _, r := range m.Roles {
+			if role.ID == r {
+				message += m.User.Username + "\n"
+			}
+		}
+	}
+	return message, nil
+}
+
+func (c *cardinal) roleExists(guild *discordgo.Guild, roleName string) bool {
+	for _, r := range guild.Roles {
+		if r.Name == roleName {
+			return true
+		}
+	}
+	return false
 }
 
 func convertColor(colorString string) (color int, err error) {
@@ -158,8 +190,9 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 	var user *discordgo.User
 	var roleID string
 	var colorString string
+	command = strings.TrimSpace(command)
 
-	switch command[len(command)-2:] {
+	switch command {
 	case "me":
 		if len(msg.Mentions) != 0 {
 			return errors.New("Found mentions")
@@ -190,6 +223,27 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 
 		user = msg.Mentions[0]
 		roleID = args[1]
+	case "who":
+		if len(msg.Mentions) != 0 {
+			return errors.New("Invalid number of mentions")
+		}
+
+		if len(args) < 1 {
+			return errors.New("Not enough args")
+		}
+
+		if len(args) > 1 {
+			return errors.New("too many args")
+		}
+
+		roleID = args[0]
+		if !c.roleExists(guild, roleID) {
+			return errors.New(roleID + " is not an existing role")
+		}
+
+		res, err := c.fetchRoleMembers(roleID, guild)
+		c.s.ChannelMessageSend(msg.Message.ChannelID, res)
+		return err
 	}
 
 	var color int
