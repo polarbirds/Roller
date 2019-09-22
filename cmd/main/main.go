@@ -117,7 +117,7 @@ func (c *cardinal) fetchRoleMembers(roleName string, guild *discordgo.Guild) (me
 			role = r
 		}
 	}
-
+	message = "User(s) in role " + roleName + ":\n"
 	for _, m := range guild.Members {
 		for _, r := range m.Roles {
 			if role.ID == r {
@@ -238,6 +238,8 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 
 		roleID = args[0]
 		if !c.roleExists(guild, roleID) {
+			res := roleID + " is not an existing role. `!who` is caps sensitive."
+			c.s.ChannelMessageSend(msg.Message.ChannelID, res)
 			return errors.New(roleID + " is not an existing role")
 		}
 
