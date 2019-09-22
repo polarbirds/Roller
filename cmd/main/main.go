@@ -115,22 +115,26 @@ func (c *cardinal) fetchRoleMembers(roleName string, guild *discordgo.Guild) (me
 				return "", fmt.Errorf("%s is not mentionable", roleName)
 			}
 			role = r
-		} else {
-			message = "\"" + roleName + "\"" + " is not an existing role"
-			return message, fmt.Errorf("\"%s\" is not an existing role", roleName)
 		}
 	}
 
 	for _, m := range guild.Members {
-		fmt.Println("user: ", m.User.Username)
 		for _, r := range m.Roles {
-			fmt.Println("user role: ", r)
 			if role.ID == r {
 				message += m.User.Username + "\n"
 			}
 		}
 	}
 	return message, nil
+}
+
+func (c *cardinal) roleExists(guild *discordgo.Guild, roleName string) bool {
+	for _, r := range guild.Roles {
+		if r.Name == roleName {
+			return true
+		}
+	}
+	return false
 }
 
 func convertColor(colorString string) (color int, err error) {
@@ -233,6 +237,10 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 		}
 
 		roleID = args[0]
+		if !c.roleExists(guild, roleID) {
+			return errors.New(roleID + " is not an existing role")
+		}
+
 		res, err := c.fetchRoleMembers(roleID, guild)
 		c.s.ChannelMessageSend(msg.Message.ChannelID, res)
 		return err
