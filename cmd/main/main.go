@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -110,27 +111,68 @@ func (c *cardinal) fetchRole(roleName string, guild *discordgo.Guild, color int)
 func (c *cardinal) fetchRoleMembers(roleName string, guild *discordgo.Guild) (message string, err error) {
 	var role *discordgo.Role
 	for _, r := range guild.Roles {
-		if r.Name == roleName {
+		if strings.ToLower(r.Name) == strings.ToLower(roleName) {
 			if !r.Mentionable {
 				return "", fmt.Errorf("%s is not mentionable", roleName)
 			}
 			role = r
 		}
 	}
-	message = "User(s) in role " + roleName + ":\n"
+	message = "```ini" + `
+Users in role [` + strings.ToLower(roleName) + "]:\n"
 	for _, m := range guild.Members {
 		for _, r := range m.Roles {
 			if role.ID == r {
-				message += m.User.Username + "\n"
+				message += "> " + m.User.Username + "\n"
 			}
 		}
 	}
+	message += "```"
+	return message, nil
+}
+
+func (c *cardinal) fetchRoleMemberCount(role *discordgo.Role, guild *discordgo.Guild) (count int) {
+	for _, m := range guild.Members {
+		for _, r := range m.Roles {
+			if role.ID == r {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func (c *cardinal) fetchAllGuildRoles(guild *discordgo.Guild) (message string, err error) {
+	roles := make(map[*discordgo.Role]int)
+	for _, r := range guild.Roles {
+		roles[r] = c.fetchRoleMemberCount(r, guild)
+	}
+
+	type Pair struct {
+		Key   *discordgo.Role
+		Value int
+	}
+
+	var sorted []Pair
+	for k, v := range roles {
+		sorted = append(sorted, Pair{k, v})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Value > sorted[j].Value
+	})
+
+	message = "```ini" + `
+Server roles:` + "\n"
+	for _, s := range sorted {
+		message += "> " + "(" + strconv.Itoa(s.Value) + ") [" + s.Key.Name + "]\n"
+	}
+	message += "```"
 	return message, nil
 }
 
 func (c *cardinal) roleExists(guild *discordgo.Guild, roleName string) bool {
 	for _, r := range guild.Roles {
-		if r.Name == roleName {
+		if strings.ToLower(r.Name) == strings.ToLower(roleName) {
 			return true
 		}
 	}
@@ -228,22 +270,27 @@ func (c *cardinal) handleMessage(msg *discordgo.MessageCreate) error {
 			return errors.New("Invalid number of mentions")
 		}
 
-		if len(args) < 1 {
-			return errors.New("Not enough args")
-		}
+		// if len(args) < 1 {
+		// 	return errors.New("Not enough args")
+		// }
 
 		if len(args) > 1 {
 			return errors.New("too many args")
 		}
+		res := ""
+		if len(args) != 0 {
+			roleID = args[0]
+			if !c.roleExists(guild, roleID) {
+				res := "`" + roleID + "`" + " is not an existing role."
+				c.s.ChannelMessageSend(msg.Message.ChannelID, res)
+				return errors.New(roleID + " is not an existing role")
+			}
 
-		roleID = args[0]
-		if !c.roleExists(guild, roleID) {
-			res := roleID + " is not an existing role. `!who` is caps sensitive."
-			c.s.ChannelMessageSend(msg.Message.ChannelID, res)
-			return errors.New(roleID + " is not an existing role")
+			res, err = c.fetchRoleMembers(roleID, guild)
+		} else {
+			res, err = c.fetchAllGuildRoles(guild)
 		}
 
-		res, err := c.fetchRoleMembers(roleID, guild)
 		c.s.ChannelMessageSend(msg.Message.ChannelID, res)
 		return err
 	}
