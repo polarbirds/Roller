@@ -180,6 +180,9 @@ func (c *cardinal) roleExists(guild *discordgo.Guild, roleName string) bool {
 }
 
 func convertColor(colorString string) (color int, err error) {
+	if strings.HasPrefix(colorString, "#") {
+		colorString = colorString[1:]
+	}
 	u, err := strconv.ParseUint(colorString, 16, 64)
 	if err != nil {
 		return
